@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_blue/flutter_blue.dart';
 
 const UART_SERVICE = '6E400001-B5A3-F393-E0A9-E50E24DCCA9E';
@@ -10,7 +11,12 @@ const CLIENT_UUID = '5A54CAB6-29BD-AA5A-30B1-8C5C164527AF';
 
 FlutterBlue flutterBlue = FlutterBlue.instance;
 
-void main() => runApp(MyApp());
+void main() {
+  SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight])
+      .then((_) {
+    runApp(new MyApp());
+  });
+}
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
@@ -72,6 +78,13 @@ class _MyHomePageState extends State<MyHomePage> {
 
   BluetoothDeviceState _deviceState;
   StreamSubscription deviceStateSubscription;
+
+  String UP_PRESS = 'FORWA';
+  String UP_LETGO = 'FSTOP';
+  String DOWN_PRESS = 'BACKW';
+  String DOWN_LETGO = 'BSTOP';
+  String L_PRESS = 'LDRIV';
+  String L_LETGO = 'LSTOP';
 
   @override
   void initState() {
@@ -146,6 +159,8 @@ class _MyHomePageState extends State<MyHomePage> {
         });
         _cancelScanning();
         _discoverServices();
+      } else if (s == BluetoothDeviceState.disconnected) {
+        _disconnect();
       } else {
         print('Not Connected');
         print(s.toString());
@@ -214,9 +229,9 @@ class _MyHomePageState extends State<MyHomePage> {
     print('Incoming Data: ' + new String.fromCharCodes(values));
   }
 
-  _txChanged(List<int> values) {
-    print('Outgoing Data: ' + new String.fromCharCodes(values));
-  }
+  // _txChanged(List<int> values) {
+  //   print('Outgoing Data: ' + new String.fromCharCodes(values));
+  // }
 
   _buildDeviceListTiles() {
     return scanResults.values
@@ -258,48 +273,169 @@ class _MyHomePageState extends State<MyHomePage> {
 
   _sendTest() async {
     //print(_device.name);
+    var testData = '!B516';
     try {
-      await _device.writeCharacteristic(_tx, 't'.codeUnits,
-          type: CharacteristicWriteType.withResponse);
+      print(testData.codeUnits);
+      await _device.writeCharacteristic(_tx, testData.codeUnits,
+          type: CharacteristicWriteType.withoutResponse);
       //List<int> value = await _device.readCharacteristic(_rx);
-      setState(() {});
+      setState(() {
+        _statusMessage = 'Sent ${testData} to WM Bot';
+      });
     } catch (e) {
       print(e.toString());
-      _statusMessage = 'Error Sending Data';
+      setState(() {
+        _statusMessage = 'Error Sending Data';
+      });
+    }
+  }
+
+  void _pressButton(PointerDownEvent details, String code) async {
+    print("Press Left");
+    try {
+      await _device.writeCharacteristic(_tx, code.codeUnits,
+          type: CharacteristicWriteType.withoutResponse);
+    } catch (e) {
+      print(e.toString());
+      setState(() {
+        _statusMessage = 'Error Sending Data';
+      });
+    }
+  }
+
+  void _letgoButton(PointerUpEvent details, String code) async {
+    print("Letgo Left");
+    try {
+      await _device.writeCharacteristic(_tx, code.codeUnits,
+          type: CharacteristicWriteType.withoutResponse);
+    } catch (e) {
+      print(e.toString());
+      setState(() {
+        _statusMessage = 'Error Sending Data';
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     var deviceList = new List<Widget>();
-    var deviceView = new Stack(children: <Widget>[
-      new Text(_statusMessage),
-      new ListView(
-        children: deviceList,
-      )
-    ]);
+    var deviceView = new ListView(
+      children: deviceList,
+    );
     if (scanResults.isNotEmpty) {
       deviceList.addAll(_buildDeviceListTiles());
     }
 
-    var controls = new Column(
-      children: <Widget>[
-        Text(
-          'Status: $_statusMessage',
-          style: TextStyle(color: Colors.red, fontSize: 20),
-        ),
-        Text((_uartService != null)
-            ? 'UART: ' + _uartService.uuid.toString()
-            : 'UART: None'),
-        Text((_tx != null) ? 'TX: ' + _tx.uuid.toString() : 'UART: None'),
-        Text((_rx != null) ? 'RX: ' + _rx.uuid.toString() : 'UART: None'),
-        MaterialButton(
-          child: Text('Send Test'),
-          color: Colors.amber,
-          onPressed: _sendTest,
-        )
-      ],
-    );
+    // var controls = new Column(
+    //   children: <Widget>[
+    //     Text(
+    //       'Status: $_statusMessage',
+    //       style: TextStyle(color: Colors.red, fontSize: 20),
+    //     ),
+    //     Text((_uartService != null)
+    //         ? 'UART: ' + _uartService.uuid.toString()
+    //         : 'UART: None'),
+    //     Text((_tx != null) ? 'TX: ' + _tx.uuid.toString() : 'UART: None'),
+    //     Text((_rx != null) ? 'RX: ' + _rx.uuid.toString() : 'UART: None'),
+    //     MaterialButton(
+    //       child: Text('Send Test'),
+    //       color: Colors.amber,
+    //       onPressed: _sendTest,
+    //     )
+    //   ],
+    // );
+    var controls = Container(
+        child: new Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: <Widget>[
+          // Text(
+          //   'Status: $_statusMessage',
+          //   style: TextStyle(color: Colors.red, fontSize: 20),
+          // ),
+          Column(
+            children: <Widget>[
+              Listener(
+                onPointerDown: (PointerDownEvent details) =>
+                    _pressButton(details, L_PRESS),
+                onPointerUp: (PointerUpEvent details) =>
+                    _letgoButton(details, L_LETGO),
+                child: MaterialButton(
+                  child: Icon(Icons.arrow_left),
+                  color: Colors.amber,
+                  onPressed: () => {},
+                ),
+              )
+            ],
+            mainAxisAlignment: MainAxisAlignment.center,
+          ),
+          Column(
+            children: <Widget>[
+              Listener(
+                onPointerDown: (PointerDownEvent details) =>
+                    _pressButton(details, UP_PRESS),
+                onPointerUp: (PointerUpEvent details) =>
+                    _letgoButton(details, UP_LETGO),
+                child: MaterialButton(
+                  child: Icon(Icons.arrow_drop_up),
+                  color: Colors.amber,
+                  onPressed: () => {},
+                ),
+              ),
+              Listener(
+                onPointerDown: (PointerDownEvent details) =>
+                    _pressButton(details, DOWN_PRESS),
+                onPointerUp: (PointerUpEvent details) =>
+                    _letgoButton(details, DOWN_LETGO),
+                child: MaterialButton(
+                  child: Icon(Icons.arrow_drop_down),
+                  color: Colors.amber,
+                  onPressed: () => {},
+                ),
+              ),
+            ],
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          ),
+          Column(
+            children: <Widget>[
+              MaterialButton(
+                child: Text('Send Test'),
+                color: Colors.amber,
+                onPressed: _sendTest,
+              )
+            ],
+            mainAxisAlignment: MainAxisAlignment.center,
+          ),
+          Column(
+            children: <Widget>[
+              MaterialButton(
+                child: Text('Send Test'),
+                color: Colors.lime,
+                onPressed: _sendTest,
+              ),
+              MaterialButton(
+                child: Text('Send Test'),
+                color: Colors.lime,
+                onPressed: _sendTest,
+              )
+            ],
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          ),
+          Column(
+            children: <Widget>[
+              MaterialButton(
+                child: Text('Send Test'),
+                color: Colors.lime,
+                onPressed: _sendTest,
+              ),
+              MaterialButton(
+                child: Text('Send Test'),
+                color: Colors.lime,
+                onPressed: _sendTest,
+              )
+            ],
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          ),
+        ]));
 
     return Scaffold(
         appBar: AppBar(
@@ -307,7 +443,7 @@ class _MyHomePageState extends State<MyHomePage> {
           // the App.build method, and use it to set our appbar title.
           title: Text(widget.title),
         ),
-        floatingActionButton: _buildScanningButton(),
+        floatingActionButton: !_connected ? _buildScanningButton() : null,
         body: _connected ? controls : deviceView);
   }
 }
