@@ -9,6 +9,20 @@ const TX_CHARACTERISTIC = '6E400002-B5A3-F393-E0A9-E50E24DCCA9E';
 const RX_CHARACTERISTIC = '6E400003-B5A3-F393-E0A9-E50E24DCCA9E';
 const CLIENT_UUID = '5A54CAB6-29BD-AA5A-30B1-8C5C164527AF';
 
+const UP_PRESS = 'FORWA';
+const DOWN_PRESS = 'BACKW';
+const LEFT_PRESS = 'LDRIV';
+const RIGHT_PRESS = 'RDRIV';
+const DRIVE_LETGO = 'DSTOP';
+
+const LEFT_ARM_UP = 'LA_UP';
+const LEFT_ARM_DOWN = 'LADWN';
+const LEFT_ARM_STP = 'LASTP';
+
+const RIGHT_ARM_UP = 'RA_UP';
+const RIGHT_ARM_DOWN = 'RADWN';
+const RIGHT_ARM_STP = 'RASTP';
+
 FlutterBlue flutterBlue = FlutterBlue.instance;
 
 void main() {
@@ -78,13 +92,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   BluetoothDeviceState _deviceState;
   StreamSubscription deviceStateSubscription;
-
-  String UP_PRESS = 'FORWA';
-  String UP_LETGO = 'FSTOP';
-  String DOWN_PRESS = 'BACKW';
-  String DOWN_LETGO = 'BSTOP';
-  String L_PRESS = 'LDRIV';
-  String L_LETGO = 'LSTOP';
 
   @override
   void initState() {
@@ -316,6 +323,19 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  _headAngle(double headAngle) async {
+    try {
+      await _device.writeCharacteristic(
+          _tx, 'H_${headAngle.toString().padLeft(3)}'.codeUnits,
+          type: CharacteristicWriteType.withoutResponse);
+    } catch (e) {
+      print(e.toString());
+      setState(() {
+        _statusMessage = 'Error Sending Head Angle';
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     var deviceList = new List<Widget>();
@@ -356,11 +376,11 @@ class _MyHomePageState extends State<MyHomePage> {
             children: <Widget>[
               Listener(
                 onPointerDown: (PointerDownEvent details) =>
-                    _pressButton(details, L_PRESS),
+                    _pressButton(details, LEFT_PRESS),
                 onPointerUp: (PointerUpEvent details) =>
-                    _letgoButton(details, L_LETGO),
+                    _letgoButton(details, DRIVE_LETGO),
                 child: MaterialButton(
-                  child: Icon(Icons.arrow_left),
+                  child: Icon(Icons.keyboard_arrow_left),
                   color: Colors.amber,
                   onPressed: () => {},
                 ),
@@ -374,9 +394,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 onPointerDown: (PointerDownEvent details) =>
                     _pressButton(details, UP_PRESS),
                 onPointerUp: (PointerUpEvent details) =>
-                    _letgoButton(details, UP_LETGO),
+                    _letgoButton(details, DRIVE_LETGO),
                 child: MaterialButton(
-                  child: Icon(Icons.arrow_drop_up),
+                  child: Icon(Icons.keyboard_arrow_up),
                   color: Colors.amber,
                   onPressed: () => {},
                 ),
@@ -385,9 +405,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 onPointerDown: (PointerDownEvent details) =>
                     _pressButton(details, DOWN_PRESS),
                 onPointerUp: (PointerUpEvent details) =>
-                    _letgoButton(details, DOWN_LETGO),
+                    _letgoButton(details, DRIVE_LETGO),
                 child: MaterialButton(
-                  child: Icon(Icons.arrow_drop_down),
+                  child: Icon(Icons.keyboard_arrow_down),
                   color: Colors.amber,
                   onPressed: () => {},
                 ),
@@ -397,41 +417,86 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           Column(
             children: <Widget>[
-              MaterialButton(
-                child: Text('Send Test'),
-                color: Colors.amber,
-                onPressed: _sendTest,
-              )
+              Listener(
+                onPointerDown: (PointerDownEvent details) =>
+                    _pressButton(details, RIGHT_PRESS),
+                onPointerUp: (PointerUpEvent details) =>
+                    _letgoButton(details, DRIVE_LETGO),
+                child: MaterialButton(
+                  child: Icon(Icons.keyboard_arrow_right),
+                  color: Colors.amber,
+                  onPressed: () => {},
+                ),
+              ),
             ],
             mainAxisAlignment: MainAxisAlignment.center,
           ),
           Column(
             children: <Widget>[
-              MaterialButton(
-                child: Text('Send Test'),
-                color: Colors.lime,
-                onPressed: _sendTest,
+              Row(children: <Widget>[
+                Listener(
+                  onPointerDown: (PointerDownEvent details) =>
+                      _pressButton(details, LEFT_ARM_UP),
+                  onPointerUp: (PointerUpEvent details) =>
+                      _letgoButton(details, LEFT_ARM_STP),
+                  child: MaterialButton(
+                    child: Icon(Icons.arrow_upward),
+                    color: Colors.lime,
+                    onPressed: () => {},
+                  ),
+                ),
+                Listener(
+                  onPointerDown: (PointerDownEvent details) =>
+                      _pressButton(details, RIGHT_ARM_UP),
+                  onPointerUp: (PointerUpEvent details) =>
+                      _letgoButton(details, RIGHT_ARM_STP),
+                  child: MaterialButton(
+                    child: Icon(Icons.arrow_upward),
+                    color: Colors.lime,
+                    onPressed: () => {},
+                  ),
+                ),
+              ], mainAxisAlignment: MainAxisAlignment.spaceBetween),
+              Row(
+                children: <Widget>[
+                  Slider(
+                    activeColor: Colors.lime,
+                    min: 0,
+                    max: 180,
+                    onChanged: (headAngle) {
+                      setState(() => _headAngle(headAngle));
+                    },
+                    value: 90,
+                  )
+                ],
               ),
-              MaterialButton(
-                child: Text('Send Test'),
-                color: Colors.lime,
-                onPressed: _sendTest,
-              )
-            ],
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          ),
-          Column(
-            children: <Widget>[
-              MaterialButton(
-                child: Text('Send Test'),
-                color: Colors.lime,
-                onPressed: _sendTest,
+              Row(
+                children: <Widget>[
+                  Listener(
+                    onPointerDown: (PointerDownEvent details) =>
+                        _pressButton(details, LEFT_ARM_DOWN),
+                    onPointerUp: (PointerUpEvent details) =>
+                        _letgoButton(details, LEFT_ARM_STP),
+                    child: MaterialButton(
+                      child: Icon(Icons.arrow_downward),
+                      color: Colors.lime,
+                      onPressed: () => {},
+                    ),
+                  ),
+                  Listener(
+                    onPointerDown: (PointerDownEvent details) =>
+                        _pressButton(details, RIGHT_ARM_DOWN),
+                    onPointerUp: (PointerUpEvent details) =>
+                        _letgoButton(details, RIGHT_ARM_STP),
+                    child: MaterialButton(
+                      child: Icon(Icons.arrow_downward),
+                      color: Colors.lime,
+                      onPressed: () => {},
+                    ),
+                  ),
+                ],
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
               ),
-              MaterialButton(
-                child: Text('Send Test'),
-                color: Colors.lime,
-                onPressed: _sendTest,
-              )
             ],
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
           ),
