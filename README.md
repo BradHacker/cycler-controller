@@ -1,16 +1,38 @@
-# cycler_controller
+# Cycler Controller
 
-A new Flutter project.
+This app is developed to control Waste Management's Cycler robot.
 
-## Getting Started
+## Prerequisites
 
-This project is a starting point for a Flutter application.
+- [Flutter](https://flutter.dev/)
+- [Android Studio](https://developer.android.com/studio)
+- [Xcode](https://developer.apple.com/xcode/) (Mac only, needed for ios development)
 
-A few resources to get you started if this is your first Flutter project:
+**Make sure to follow the installation instructions found [here](https://flutter.dev/docs/get-started/install) first before continuing**
 
-- [Lab: Write your first Flutter app](https://flutter.io/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.io/docs/cookbook)
+## Setup
 
-For help getting started with Flutter, view our 
-[online documentation](https://flutter.io/docs), which offers tutorials, 
-samples, guidance on mobile development, and a full API reference.
+Run the following code to generate a keystore for your machine:
+
+Mac / Linux
+```
+keytool -genkey -v -keystore ~/key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias key
+```
+
+Windows
+```
+keytool -genkey -v -keystore c:/Users/USER_NAME/key.jks -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 -alias key
+```
+
+Create a file `<app-dir>/android/key.properties` that references your keystore from the previous step
+
+```
+storePassword=<password from previous step>
+keyPassword=<password from previous step>
+keyAlias=key
+storeFile=<location of the key store file, such as /Users/<user name>/key.jks>
+```
+
+## Installation
+
+Plug in your device over USB (ensure USB debugging is enabled), then inside your projects directory run `flutter install`
